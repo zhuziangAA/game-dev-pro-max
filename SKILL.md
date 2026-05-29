@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [game, gamedev, beginner, tutorial, phaser, full-cycle, indie-dev]
-    related_skills: [writing-plans, systematic-debugging, test-driven-development, subagent-driven-development, architecture-diagram, excalidraw]
+    related_skills: [writing-plans, systematic-debugging, subagent-driven-development, architecture-diagram, excalidraw, test-driven-development]
 ---
 
 # Game Dev Pro Max (从0开始开发一款游戏)
@@ -494,6 +494,103 @@ Before writing code, fill this out (keep it to one page):
 9. **Trying to build multiplayer on the first game:** Multiplayer adds server architecture, networking, state sync, reconnection, anti-cheat — it easily 5x the complexity. Save it for game #3 or #4.
 
 10. **Not shipping:** The game is never "done." Set a deadline. Ship on that date. Add a "v1.0" label and ship it. You can always make v1.1.
+
+---
+
+## 🧠 Game Design Principles (from 100 Principles of Game Design)
+
+This skill is built on the foundation of *100 Principles of Game Design* (Despain et al., 2013). Below are the principles most relevant to building your first game, distilled into actionable advice. The full reference (90+ principles with complete text) is in `references/principles_full_content.md`.
+
+### Chapter 1: Innovation — 游戏创新
+
+| Principle | 核心含义 | 新手怎么做 |
+|---|---|---|
+| **Core Gameplay Loop (已覆盖)** | 游戏就是玩家反复做的一件事 | Phase 2 已经实现 |
+| **Flow** | 挑战与技能的动态平衡。太难=焦虑，太简单=无聊 | 用难度曲线保持"刚好有点难但能过" |
+| **MDA Framework** | Mechanics(机制) → Dynamics(行为) → Aesthetics(感受) | 设计机制时想: "这会让玩家有什么感受?" |
+| **Magic Circle** | 游戏创造了一个与现实隔离的"魔法圈" | 用主题和规则让玩家沉浸 |
+| **Bartle's Player Types** | 玩家分4类: 成就者/探索者/社交者/杀手 | 确保你的游戏至少服务2类玩家 |
+| **Fairness** | 玩家感知的公平决定留存 | 随机必须有约束，避免明显的"不公平" |
+| **Feedback Loops** | 正反馈(赢家通吃) vs 负反馈(给落后补偿) | 赛车游戏用"后车加速"是负反馈，很好 |
+| **Lazzaro's Four Keys** | 4种乐趣: Easy Fun(好奇), Hard Fun(挑战), People Fun(社交), Serious Fun(意义) | 知道你的游戏主打哪种乐趣 |
+| **Koster's Theory of Fun** | 乐趣=大脑学习模式时的愉悦感 | 让玩家不断学新东西，别一直重复 |
+| **Skinner Box** | 不可预测的奖励最让人上瘾 | 不要滥用！用随机掉落做惊喜，别做"精神控制" |
+| **Transparency** | 玩家需要理解游戏为什么这样运作 | 死亡要告诉玩家"为什么死" |
+
+### Chapter 2: Creation — 游戏制作
+
+| Principle | 核心含义 | 新手怎么做 |
+|---|---|---|
+| **Scope (范围控制)** | 砍掉80%的功能才能做完20%的好游戏 | Phase 0 已经覆盖 |
+| **Paper Prototyping** | 在纸上测试游戏逻辑，比写代码快10倍 | 棋盘游戏用纸片测试规则，跳过写代码 |
+| **Play Testing** | 看着别人玩，不说话 | Phase 5 已经覆盖 |
+| **Iteration (迭代)** | 做一版→试玩→改进→再试 | Phase 5 已经覆盖 |
+| **Game Pillars** | 用3个关键词定义游戏的核心 | 例如: "探索、战斗、升级" |
+| **Flow (见上)** | 难度曲线就是心流曲线 | 每关比前一关难10-15% |
+| **Design by Committee** | 太多人参与决策会毁掉游戏 | 小游戏1个设计师就够了 |
+| **User-Centered Design** | 从玩家角度设计，不是从开发者角度 | 新手教程不是"教怎么玩"，是"让玩家自然学会" |
+| **Define the Problem** | 先搞清楚你要解决的核心问题 | "我想做一个2D跳跃游戏" ❌ \n"我想让玩家体验在危险悬崖间跳跃的紧张感" ✅ |
+| **The 80/20 Rule** | 20%的功能产生80%的乐趣 | 先做那20% |
+| **Ooh, Shiny!** | 视觉/音效刺激抓住注意力 | 但不要过度依赖，游戏性才是根本 |
+| **Theme (主题)** | 一致的主题让游戏有灵魂 | 像素风就全像素，卡通就全卡通 |
+| **Time and Money** | 时间vs金钱的二选一 | 初学者选择"花时间不花钱"（用免费素材） |
+| **Pick Two: Fast, Cheap, Good** | 三选二，必有一项牺牲 | 🆓新手策略: 快+便宜(不追求完美) |
+| **Objects, Attributes, States** | 万物皆可建模为: 对象→属性→状态 | 写代码前用这个框架梳理游戏实体 |
+| **Prototyping (通用)** | 快速试错，而不是完美规划 | Phase 1 的 HTML 模板就是你的原型工具 |
+| **Metagames** | 游戏之外的元游戏（社区、攻略、排行榜） | 先别做，等游戏做好了再考虑 |
+
+### Chapter 3: Balancing — 游戏平衡
+
+| Principle | 核心含义 | 新手怎么做 |
+|---|---|---|
+| **Balancing and Tuning** | 平衡不是一次完成，是反复调整 | 用数据驱动的调整: 记录死玩家次数，调参数 |
+| **Doubling and Halving** | 调数值时翻倍或减半，别微调 | 敌人血量太高? 减半试。玩家太强? 翻倍试 |
+| **Loss Aversion** | 人害怕失去远大于渴望获得 | 死亡惩罚要适度，防止玩家气馁放弃 |
+| **Variable Rewards** | 随机奖励比固定奖励更让人着迷 | 宝箱开出的东西不完全一样 |
+| **Learning Curve** | 从简单到复杂的递进学习 | Level 1只有移动, Level 2加跳跃, Level 3加敌人 |
+| **Interest Curve** | 玩家的兴趣随时间波动 | 游戏应该有"高潮-低谷-高潮"的节奏 |
+| **Errors Players Make** | 玩家会犯错, 但好的设计让错误可理解 | 玩家落地前显示落点范围 |
+| **Errors Without Punishment** | 有些错误不应该惩罚 | 死一次重生比"从头再来"好 |
+| **Punishment (惩罚)** | 惩罚要重到有意义，轻到不劝退 | 新手模式降低惩罚强度 |
+| **Details (细节)** | 细节决定品质感 | 跳起来时衣服飘动、踩到泥地有脚印 |
+| **Addiction Pathways** | 游戏成瘾的道德问题 | 设计时要考虑玩家的健康 |
+| **Attention vs. Perception** | 人注意到的≠实际看到的 | 用视觉引导玩家注意关键信息 |
+| **Hick's Law** | 选择越多，决策越慢 | 新手教程一次只给1-2个按钮 |
+| **Ten Minutes of Sustained Attention** | 人的持续注意力约10分钟 | 每个游戏环节控制在10分钟内 |
+| **Maslow's Hierarchy** | 先满足基本需求，再追求高级快乐 | 游戏也要从"生存"→"社交"→"自我实现" |
+| **Economies of Scale** | 批量生产更便宜 | 用同一个敌人贴图变色做3种敌人 |
+
+### Chapter 4: Troubleshooting — 问题排查
+
+| Principle | 核心含义 | 新手怎么做 |
+|---|---|---|
+| **Cognitive Biases** | 开发者无法客观评价自己的游戏 | 朋友说"还不错"≠真的不错。看行为，别听言语 |
+| **Fundamental Attribution Error** | 玩家觉得"游戏没做好"而不是"我不会玩" | 玩家卡关时，先想是不是游戏设计有问题 |
+| **Affordance Cues** | 物体的形态暗示其功能 | 可攀爬的墙要有把手/藤蔓，可开的门要有把手 |
+| **Fitts' Law** | 目标越大越近，点击越快 | 手机游戏的按钮要大！ |
+| **Dominant Strategy** | 如果有一个永远最优的策略，游戏就死了 | 石头剪刀布没有"最优"——让它循环克制 |
+| **Griefing** | 总有人恶意破坏其他玩家的体验 | 多人游戏要防恶意行为（踢人、刷屏） |
+| **Satisficing vs. Optimizing** | 大多数人"够好就行"而不是"追求最优" | 不需要做出史上最好的游戏，做个有趣的就行 |
+| **Sense of Accomplishment** | 让玩家感觉自己变强了 | 每过一关给个小奖励/称号 |
+| **Golden Ratio** | 1:1.618的视觉比例让人觉得美 | UI布局时参考这个比例 |
+| **Krug's First Law** | "不要让我思考" —— 界面要一目了然 | 按钮放在玩家期待的位置 |
+| **Zero-Sum Game** | 你赢=我输，制造对抗性 | PvP游戏天生零和，PvE需要设计合作 |
+| **Pacing (节奏)** | 张弛有度，不要让玩家一直紧张 | 紧张关卡后跟一个轻松关 |
+| **Working Memory** | 人一次只能记住7±2件事 | 别让玩家同时追踪太多东西 |
+| **Instant vs. Delayed Gratification** | 即时反馈(吃豆) vs 延迟奖励(攒钱买装备) | 两种都要有 |
+| **Music and Dopamine** | 好音乐能激发多巴胺 | 免费音乐推荐: incompetech.com |
+| **Time Dilation** | 紧张时感觉时间变慢 | 致命时刻用慢动作增加戏剧性 |
+| **Spatial Awareness** | 玩家需要对空间有感知 | 2D游戏确保前景/背景/可交互元素清晰区分 |
+| **Advance Organizers** | 先给框架再给细节 | 教程先展示"整个游戏长啥样"再教具体操作 |
+
+---
+
+## 📚 Reference Files
+
+This skill includes these reference files in `references/`:
+
+- **principles_full_content.md** (90 principles, 6,500+ lines) — Full extracted text of every principle from *100 Principles of Game Design*. Load with skill_view(name='game-dev-pro-max', file_path='references/principles_full_content.md') when you need the complete explanation of any principle.
+- **100-principles-of-game-design.md** — A-Z index + chapter structure + mapping to Game Dev Pro Max phases.
 
 ---
 
