@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的游戏 - Phaser 3 Starter</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #1a1a2e; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+
+<script>
+// =======================================================================
+// Game Dev Pro Max — Phaser 3 Starter
+// =======================================================================
+// Phaser 3 是一个功能完整的 2D 游戏引擎。
+// 这个文件包含了: 场景管理、物理引擎、输入处理、UI 文本。
+// 打开浏览器就能玩，不需要 npm 或构建工具！
+// =======================================================================
+
+// ========== BOOT SCENE: 加载资源 ==========
+class BootScene extends Phaser.Scene {
+  constructor() { super('Boot'); }
+
+  preload() {
+    // 显示加载进度
+    const text = this.add.text(400, 300, '加载中...', { 
+      fontSize: '24px', color: '#ffffff' 
+    }).setOrigin(0.5);
+
+    // TODO: 加载图片/音效资源
+    // this.load.image('player', 'assets/player.png');
+    // this.load.audio('jump', 'assets/jump.wav');
+  }
+
+  create() {
+    this.scene.start('Menu');
+  }
+}
+
+// ========== MENU SCENE: 标题界面 ==========
+class MenuScene extends Phaser.Scene {
+  constructor() { super('Menu'); }
+
+  create() {
+    this.cameras.main.setBackgroundColor('#16213e');
+
+    // 标题
+    this.add.text(400, 200, '我的游戏', {
+      fontSize: '64px',
+      color: '#e94560',
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    // 开始提示
+    const startText = this.add.text(400, 380, '按 空格键 或 点击 开始游戏', {
+      fontSize: '24px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+    }).setOrigin(0.5);
+
+    // 闪烁效果
+    this.tweens.add({
+      targets: startText,
+      alpha: 0.3,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    // 操作说明
+    this.add.text(400, 500, '方向键移动 · 空格/↑ 跳跃 · R 重开', {
+      fontSize: '16px',
+      color: '#888888',
+      fontFamily: 'Arial',
+    }).setOrigin(0.5);
+
+    // 点击或空格开始
+    this.input.keyboard.once('keydown-SPACE', () => this.scene.start('Game'));
+    this.input.once('pointerdown', () => this.scene.start('Game'));
+  }
+}
+
+// ========== GAME SCENE: 核心玩法 ==========
+class GameScene extends Phaser.Scene {
+  constructor() { super('Game'); }
+
+  create() {
+    // --- 背景 ---
+    this.cameras.main.setBackgroundColor('#0f3460');
+
+    // --- 物理世界 ---
+    // Phaser 内置 Arcade Physics
+    this.physics.world.setBounds(0, 0, 800, 600);
+    this.physics.world.gravity.y = 800;
+
+    // --- 地面 ---
+    this.ground = this.physics.add.staticGroup();
+    // 用纹理创建地面 (程序生成的矩形)
+    const groundGfx = this.make.graphics({ x: 0, y: 0, add: false });
+    groundGfx.fillStyle(0x533483);
+    groundGfx.fillRect(0, 0, 800, 50);
+    groundGfx.generateTexture('ground', 800, 50);
+    groundGfx.destroy();
+    this.ground.create(400, 575, 'ground');
+
+    // --- 平台 ---
+    const platGfx = this.make.graphics({ x: 0, y: 0, add: false });
+    platGfx.fillStyle(0x7b2d8e);
+    platGfx.fillRect(0, 0, 150, 20);
+    platGfx.generateTexture('platform', 150, 20);
+    platGfx.destroy();
+
+    this.platforms = this.physics.add.staticGroup();
+    this.platforms.create(275, 450, 'platform');
+    this.platforms.create(525, 370, 'platform');
+    this.platforms.create(175, 290, 'platform');
+
+    // --- 玩家 ---
+    // 创建一个简单的矩形精灵
+    const playerGfx = this.make.graphics({ x: 0, y: 0, add: false });
+    playerGfx.fillStyle(0xe94560);
+    playerGfx.fillRect(0, 0, 28, 36);
+    playerGfx.generateTexture('player', 28, 36);
+    playerGfx.destroy();
+
+    this.player = this.physics.add.sprite(100, 500, 'player');
+    this.player.setCollideWorldBounds(true);
+    this.player.setBounce(0.1);
+
+    // --- 碰撞: 玩家 ↔ 地面/平台 ---
+    this.physics.add.collider(this.player, this.ground);
+    this.physics.add.collider(this.player, this.platforms);
+
+    // --- 终点 ---
+    const goalGfx = this.make.graphics({ x: 0, y: 0, add: false });
+    goalGfx.fillStyle(0xffd700);
+    goalGfx.fillRect(0, 0, 30, 50);
+    goalGfx.generateTexture('goal', 30, 50);
+    goalGfx.destroy();
+
+    this.goal = this.physics.add.staticSprite(725, 525, 'goal');
+
+    // 当玩家碰到终点
+    this.physics.add.overlap(this.player, this.goal, () => {
+      this.scene.start('Win');
+    });
+
+    // --- 输入 ---
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+    this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+    this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+    this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+
+    // --- UI ---
+    this.score = 0;
+    this.scoreText = this.add.text(16, 16, 'Score: 0', {
+      fontSize: '24px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+    }).setScrollFactor(0).setDepth(100);
+
+    // --- 陷阱/掉落检测 ---
+    this.time.addEvent({
+      delay: 100,
+      callback: () => {
+        if (this.player.y > 620) {
+          this.scene.start('GameOver', { score: this.score });
+        }
+      },
+      loop: true,
+    });
+
+    // 按 R 重开
+    this.keyR.on('down', () => {
+      this.scene.start('Game');
+    });
+  }
+
+  update() {
+    // --- 移动 ---
+    const speed = 300;
+    if (this.cursors.left.isDown || this.keyA.isDown) {
+      this.player.setVelocityX(-speed);
+    } else if (this.cursors.right.isDown || this.keyD.isDown) {
+      this.player.setVelocityX(speed);
+    } else {
+      this.player.setVelocityX(0);
+    }
+
+    // --- 跳跃 ---
+    if ((this.cursors.up.isDown || this.keyW.isDown) && this.player.body.touching.down) {
+      this.player.setVelocityY(-500);
+    }
+
+    // --- 得分 (按存活时间) ---
+    this.score += 1;
+    this.scoreText.setText(`Score: ${Math.floor(this.score / 60)}`);
+  }
+}
+
+// ========== GAME OVER SCENE ==========
+class GameOverScene extends Phaser.Scene {
+  constructor() { super('GameOver'); }
+
+  init(data) {
+    this.finalScore = data.score || 0;
+  }
+
+  create() {
+    this.cameras.main.setBackgroundColor('#000000');
+
+    this.add.text(400, 200, 'GAME OVER', {
+      fontSize: '48px',
+      color: '#e94560',
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    this.add.text(400, 300, `得分: ${Math.floor(this.finalScore / 60)}`, {
+      fontSize: '28px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+    }).setOrigin(0.5);
+
+    const restartText = this.add.text(400, 400, '按 R 或 点击 重新开始', {
+      fontSize: '20px',
+      color: '#888888',
+      fontFamily: 'Arial',
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: restartText,
+      alpha: 0.3,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    this.input.keyboard.once('keydown-R', () => this.scene.start('Game'));
+    this.input.once('pointerdown', () => this.scene.start('Game'));
+  }
+}
+
+// ========== WIN SCENE ==========
+class WinScene extends Phaser.Scene {
+  constructor() { super('Win'); }
+
+  create() {
+    this.cameras.main.setBackgroundColor('#1a1a2e');
+
+    this.add.text(400, 200, '🎉 恭喜过关！', {
+      fontSize: '48px',
+      color: '#ffd700',
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    this.add.text(400, 300, '你完成了所有挑战！', {
+      fontSize: '24px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+    }).setOrigin(0.5);
+
+    const restartText = this.add.text(400, 400, '按 R 再玩一次', {
+      fontSize: '20px',
+      color: '#888888',
+      fontFamily: 'Arial',
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: restartText,
+      alpha: 0.3,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    this.input.keyboard.once('keydown-R', () => this.scene.start('Game'));
+    this.input.once('pointerdown', () => this.scene.start('Game'));
+  }
+}
+
+// ========== GAME CONFIG ==========
+const config = {
+  type: Phaser.AUTO,
+  width: 800,
+  height: 600,
+  parent: document.body,
+  backgroundColor: '#000000',
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 0 },
+      debug: false,
+    },
+  },
+  scene: [BootScene, MenuScene, GameScene, GameOverScene, WinScene],
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+};
+
+// ========== START ==========
+const game = new Phaser.Game(config);
+</script>
+</body>
+</html>

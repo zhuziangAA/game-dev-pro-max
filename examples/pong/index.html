@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pong - Game Dev Pro Max 示例</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #0a0a1a; 
+      display: flex;
+      flex-direction: column;
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh;
+      font-family: 'Courier New', monospace;
+    }
+    canvas { background: #000; border: 2px solid #333; }
+    #ui {
+      color: #fff;
+      text-align: center;
+      margin-top: 20px;
+    }
+    #ui h1 { color: #e94560; font-size: 18px; margin-bottom: 8px; }
+    #ui p { color: #666; font-size: 13px; }
+    #ui kbd { 
+      background: #333; color: #fff; padding: 2px 8px; 
+      border-radius: 3px; font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+<div id="ui">
+  <h1>🏓 PONG — Game Dev Pro Max 示例</h1>
+  <p><kbd>W</kbd><kbd>S</kbd> 左玩家 · <kbd>↑</kbd><kbd>↓</kbd> 右玩家 · 先得5分获胜 · <kbd>R</kbd> 重开</p>
+</div>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+<script>
+// =======================================================================
+// 🏓 PONG — ~120 行 JavaScript
+// 
+// 这是一个完整可玩的 Pong 游戏。不到 120 行。
+// 什么都不需要安装，保存为 index.html 打开就能玩。
+// =======================================================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// ========== CONSTANTS ==========
+const W = 800, H = 400;
+const PADDLE_W = 10, PADDLE_H = 70;
+const BALL_SIZE = 10;
+const PADDLE_SPEED = 400;   // 像素/秒
+const BALL_SPEED = 350;     // 初始球速
+const WIN_SCORE = 5;
+
+// ========== STATE ==========
+let state = 'PLAYING'; // PLAYING | GAME_OVER
+let winner = '';
+
+const leftPaddle =  { x: 20, y: H/2 - PADDLE_H/2, w: PADDLE_W, h: PADDLE_H, score: 0 };
+const rightPaddle = { x: W - 20 - PADDLE_W, y: H/2 - PADDLE_H/2, w: PADDLE_W, h: PADDLE_H, score: 0 };
+
+const ball = {
+  x: W/2, y: H/2, size: BALL_SIZE,
+  vx: BALL_SPEED * (Math.random() > 0.5 ? 1 : -1),
+  vy: (Math.random() - 0.5) * 200,
+};
+
+// ========== INPUT ==========
+const keys = {};
+document.addEventListener('keydown', e => keys[e.key] = true);
+document.addEventListener('keyup', e => keys[e.key] = false);
+document.addEventListener('keydown', e => { if (e.key === 'r' || e.key === 'R') resetGame(); });
+
+// ========== GAME LOOP ==========
+let lastTime = 0;
+
+function gameLoop(timestamp) {
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+  lastTime = timestamp;
+
+  if (state === 'PLAYING') update(dt);
+  render();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ========== UPDATE ==========
+function update(dt) {
+  // --- 左玩家 (W/S) ---
+  if (keys['w'] || keys['W']) leftPaddle.y -= PADDLE_SPEED * dt;
+  if (keys['s'] || keys['S']) leftPaddle.y += PADDLE_SPEED * dt;
+  leftPaddle.y = Math.max(0, Math.min(H - PADDLE_H, leftPaddle.y));
+
+  // --- 右玩家 (↑/↓) ---
+  if (keys['ArrowUp']) rightPaddle.y -= PADDLE_SPEED * dt;
+  if (keys['ArrowDown']) rightPaddle.y += PADDLE_SPEED * dt;
+  rightPaddle.y = Math.max(0, Math.min(H - PADDLE_H, rightPaddle.y));
+
+  // --- 球移动 ---
+  ball.x += ball.vx * dt;
+  ball.y += ball.vy * dt;
+
+  // --- 球碰上下壁 ---
+  if (ball.y <= 0 || ball.y >= H - BALL_SIZE) {
+    ball.vy = -ball.vy;
+    ball.y = ball.y <= 0 ? 0 : H - BALL_SIZE;
+  }
+
+  // --- 球碰左拍 ---
+  if (ball.vx < 0 &&
+      ball.x <= leftPaddle.x + leftPaddle.w &&
+      ball.x >= leftPaddle.x &&
+      ball.y + BALL_SIZE >= leftPaddle.y &&
+      ball.y <= leftPaddle.y + leftPaddle.h) {
+    ball.vx = -ball.vx;
+    ball.x = leftPaddle.x + leftPaddle.w;
+    // 加一点点随机角度
+    ball.vy += (Math.random() - 0.5) * 100;
+  }
+
+  // --- 球碰右拍 ---
+  if (ball.vx > 0 &&
+      ball.x + BALL_SIZE >= rightPaddle.x &&
+      ball.x <= rightPaddle.x + rightPaddle.w &&
+      ball.y + BALL_SIZE >= rightPaddle.y &&
+      ball.y <= rightPaddle.y + rightPaddle.h) {
+    ball.vx = -ball.vx;
+    ball.x = rightPaddle.x - BALL_SIZE;
+    ball.vy += (Math.random() - 0.5) * 100;
+  }
+
+  // --- 球出界 → 对方得分 ---
+  if (ball.x < 0) {
+    rightPaddle.score++;
+    checkWin();
+    resetBall();
+  }
+  if (ball.x > W) {
+    leftPaddle.score++;
+    checkWin();
+    resetBall();
+  }
+}
+
+function checkWin() {
+  if (leftPaddle.score >= WIN_SCORE) { state = 'GAME_OVER'; winner = 'LEFT'; }
+  if (rightPaddle.score >= WIN_SCORE) { state = 'GAME_OVER'; winner = 'RIGHT'; }
+}
+
+function resetBall() {
+  ball.x = W / 2;
+  ball.y = H / 2;
+  const angle = (Math.random() - 0.5) * Math.PI / 3; // ±30度
+  const dir = Math.random() > 0.5 ? 1 : -1;
+  ball.vx = BALL_SPEED * dir;
+  ball.vy = BALL_SPEED * Math.sin(angle);
+}
+
+function resetGame() {
+  leftPaddle.y = H/2 - PADDLE_H/2;
+  rightPaddle.y = H/2 - PADDLE_H/2;
+  leftPaddle.score = 0;
+  rightPaddle.score = 0;
+  state = 'PLAYING';
+  winner = '';
+  resetBall();
+}
+
+// ========== RENDER ==========
+function render() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+
+  // --- 中线 ---
+  ctx.strokeStyle = '#333';
+  ctx.setLineDash([10, 10]);
+  ctx.beginPath();
+  ctx.moveTo(W/2, 0);
+  ctx.lineTo(W/2, H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // --- 球 ---
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(ball.x, ball.y, BALL_SIZE, BALL_SIZE);
+
+  // --- 左拍 ---
+  ctx.fillStyle = '#e94560';
+  ctx.fillRect(leftPaddle.x, leftPaddle.y, PADDLE_W, PADDLE_H);
+
+  // --- 右拍 ---
+  ctx.fillStyle = '#533483';
+  ctx.fillRect(rightPaddle.x, rightPaddle.y, PADDLE_W, PADDLE_H);
+
+  // --- 分数 ---
+  ctx.font = '48px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e94560';
+  ctx.fillText(leftPaddle.score, W/2 - 60, 60);
+  ctx.fillStyle = '#533483';
+  ctx.fillText(rightPaddle.score, W/2 + 60, 60);
+
+  // --- 游戏结束 ---
+  if (state === 'GAME_OVER') {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = '48px Courier New';
+    ctx.fillText(`${winner === 'LEFT' ? '左' : '右'}玩家获胜！`, W/2, H/2 - 20);
+    ctx.fillStyle = '#888';
+    ctx.font = '20px Courier New';
+    ctx.fillText('按 R 重新开始', W/2, H/2 + 40);
+  }
+}
+
+// ========== START ==========
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>

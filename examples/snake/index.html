@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake - Game Dev Pro Max 示例</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #0a0a1a; 
+      display: flex;
+      flex-direction: column;
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh;
+      font-family: 'Courier New', monospace;
+    }
+    canvas { border: 2px solid #333; }
+    #ui {
+      color: #fff;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #ui h1 { color: #e94560; font-size: 18px; margin-bottom: 8px; }
+    #ui p { color: #666; font-size: 13px; }
+    #ui kbd { background: #333; color: #fff; padding: 2px 8px; border-radius: 3px; font-size: 12px; }
+    #score { color: #ffd700; font-size: 28px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+<div id="ui">
+  <h1>🐍 SNAKE — Game Dev Pro Max 示例</h1>
+  <p><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 移动 · <kbd>R</kbd> 重开</p>
+  <div id="score">得分: 0</div>
+</div>
+<canvas id="gameCanvas" width="400" height="400"></canvas>
+<script>
+// =======================================================================
+// 🐍 SNAKE — ~100 行 JavaScript
+//
+// 经典贪吃蛇。格子网格，每次吃食物变长。
+// HTML 文件保存打开就能玩，不需要安装任何东西。
+// =======================================================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+
+const GRID_SIZE = 20;       // 每个格子 20px
+const COLS = 20;           // 20×20 网格
+const ROWS = 20;
+const TICK_MS = 150;       // 蛇移动间隔 (ms)
+
+// ========== STATE ==========
+let snake = [
+  { x: 10, y: 10 },
+  { x: 9, y: 10 },
+  { x: 8, y: 10 },
+];
+let direction = { x: 1, y: 0 }; // 向右
+let nextDirection = { x: 1, y: 0 };
+let food = { x: 15, y: 10 };
+let score = 0;
+let gameOver = false;
+let gameState = 'PLAYING'; // PLAYING | GAME_OVER
+
+// ========== INPUT ==========
+document.addEventListener('keydown', (e) => {
+  if (gameOver && (e.key === 'r' || e.key === 'R')) resetGame();
+  if (gameOver) return;
+
+  switch (e.key) {
+    case 'ArrowUp':    if (direction.y !== 1) nextDirection = { x: 0, y: -1 }; break;
+    case 'ArrowDown':  if (direction.y !== -1) nextDirection = { x: 0, y: 1 }; break;
+    case 'ArrowLeft':  if (direction.x !== 1) nextDirection = { x: -1, y: 0 }; break;
+    case 'ArrowRight': if (direction.x !== -1) nextDirection = { x: 1, y: 0 }; break;
+  }
+});
+
+// ========== GAME LOGIC ==========
+function tick() {
+  if (gameState !== 'PLAYING') return;
+
+  direction = nextDirection;
+
+  // 计算新头部
+  const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+
+  // 碰墙检测
+  if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+    gameState = 'GAME_OVER';
+    gameOver = true;
+    return;
+  }
+
+  // 碰自己检测 (忽略尾部, 因为尾部会被移除——除非吃到食物)
+  for (let i = 0; i < snake.length; i++) {
+    if (snake[i].x === head.x && snake[i].y === head.y) {
+      gameState = 'GAME_OVER';
+      gameOver = true;
+      return;
+    }
+  }
+
+  // 移动
+  snake.unshift(head);
+
+  // 吃食物?
+  if (head.x === food.x && head.y === food.y) {
+    score += 10;
+    scoreEl.textContent = `得分: ${score}`;
+    spawnFood();
+  } else {
+    snake.pop(); // 没吃到食物, 移除尾部
+  }
+}
+
+function spawnFood() {
+  let pos;
+  do {
+    pos = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
+  } while (snake.some(s => s.x === pos.x && s.y === pos.y));
+  food = pos;
+}
+
+function resetGame() {
+  snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
+  direction = { x: 1, y: 0 };
+  nextDirection = { x: 1, y: 0 };
+  score = 0;
+  gameOver = false;
+  gameState = 'PLAYING';
+  scoreEl.textContent = '得分: 0';
+  spawnFood();
+}
+
+// ========== RENDER ==========
+function draw() {
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, 400, 400);
+
+  // 网格
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= COLS; i++) {
+    ctx.beginPath(); ctx.moveTo(i * GRID_SIZE, 0); ctx.lineTo(i * GRID_SIZE, 400); ctx.stroke();
+  }
+  for (let i = 0; i <= ROWS; i++) {
+    ctx.beginPath(); ctx.moveTo(0, i * GRID_SIZE); ctx.lineTo(400, i * GRID_SIZE); ctx.stroke();
+  }
+
+  // 蛇身
+  for (let i = 0; i < snake.length; i++) {
+    const alpha = 0.4 + 0.6 * (1 - i / snake.length);
+    ctx.fillStyle = `rgba(83, 52, 131, ${alpha})`;
+    ctx.fillRect(snake[i].x * GRID_SIZE + 1, snake[i].y * GRID_SIZE + 1, GRID_SIZE - 2, GRID_SIZE - 2);
+  }
+
+  // 蛇头
+  ctx.fillStyle = '#e94560';
+  ctx.fillRect(snake[0].x * GRID_SIZE + 1, snake[0].y * GRID_SIZE + 1, GRID_SIZE - 2, GRID_SIZE - 2);
+  // 眼睛
+  ctx.fillStyle = '#fff';
+  const ex = snake[0].x * GRID_SIZE + (direction.x === 1 ? 14 : direction.x === -1 ? 4 : 8);
+  const ey = snake[0].y * GRID_SIZE + (direction.y === 1 ? 14 : direction.y === -1 ? 4 : 8);
+  ctx.fillRect(ex, ey, 3, 3);
+
+  // 食物
+  ctx.fillStyle = '#ffd700';
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = '#ffd700';
+  ctx.beginPath();
+  ctx.arc(food.x * GRID_SIZE + GRID_SIZE/2, food.y * GRID_SIZE + GRID_SIZE/2, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Game Over
+  if (gameState === 'GAME_OVER') {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, 0, 400, 400);
+    ctx.fillStyle = '#e94560';
+    ctx.font = '36px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER', 200, 180);
+    ctx.fillStyle = '#888';
+    ctx.font = '18px Courier New';
+    ctx.fillText('按 R 重新开始', 200, 240);
+  }
+}
+
+// ========== GAME LOOP ==========
+setInterval(tick, TICK_MS);
+
+function loop() {
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ========== START ==========
+spawnFood();
+loop();
+</script>
+</body>
+</html>

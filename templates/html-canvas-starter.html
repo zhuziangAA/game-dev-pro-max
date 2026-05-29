@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的游戏 - Game Dev Pro Max 启动项目</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #1a1a2e; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    #gameContainer {
+      position: relative;
+      border: 2px solid #e94560;
+      border-radius: 4px;
+      box-shadow: 0 0 40px rgba(233, 69, 96, 0.3);
+    }
+    canvas { 
+      background: #16213e; 
+      display: block;
+    }
+    #ui {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      pointer-events: none;
+      padding: 16px;
+    }
+    #score {
+      color: #fff;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    #info {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.4);
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div id="gameContainer">
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="ui">
+    <div id="score">Score: 0</div>
+  </div>
+  <div id="info">WASD 移动 · 空格 跳跃 · R 重开</div>
+</div>
+
+<script>
+// =======================================================================
+// Game Dev Pro Max — HTML Canvas Starter
+// =======================================================================
+// 这是一个可以直接运行的 HTML 游戏框架。
+// 你只需要修改 update() 和 render() 函数里的 TODO 就行。
+// 打开浏览器就能玩，不需要安装任何东西！
+// =======================================================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+
+// ========== GAME STATE ==========
+const STATE = { MENU: 0, PLAYING: 1, GAME_OVER: 2, WIN: 3 };
+let gameState = STATE.PLAYING;  // 改成 MENU 就可以加菜单
+let score = 0;
+
+// ========== PLAYER ==========
+const player = {
+  x: 100, y: 500,
+  width: 32, height: 32,
+  vx: 0, vy: 0,
+  speed: 300,      // 像素/秒
+  jumpPower: -500,  // 负数 = 向上
+  color: '#e94560',
+  grounded: false,
+};
+
+// ========== INPUT ==========
+const keys = {};
+document.addEventListener('keydown', (e) => { keys[e.key] = true; });
+document.addEventListener('keyup',   (e) => { keys[e.key] = false; });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'r' || e.key === 'R') resetGame();
+});
+
+// ========== PHYSICS CONSTANTS ==========
+const GRAVITY = 1200;    // 像素/秒² (平台游戏)
+const GROUND_Y = 550;    // 地面 Y 坐标
+const CANVAS_W = 800;
+const CANVAS_H = 600;
+
+// ========== GAME OBJECTS ==========
+// TODO: 在这里添加你的游戏对象
+const platforms = [
+  { x: 0, y: GROUND_Y, w: 800, h: 50 },          // 地面
+  { x: 200, y: 430, w: 150, h: 20 },              // 平台1
+  { x: 450, y: 350, w: 150, h: 20 },              // 平台2
+  { x: 100, y: 270, w: 120, h: 20 },              // 平台3
+];
+
+const goal = { x: 700, y: GROUND_Y - 50, w: 40, h: 50 }; // 终点旗
+
+// ========== GAME LOOP ==========
+let lastTime = 0;
+
+function gameLoop(timestamp) {
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.05); // cap dt
+  lastTime = timestamp;
+
+  if (gameState === STATE.PLAYING) {
+    update(dt);
+  }
+  render();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ========== UPDATE: 游戏逻辑 ==========
+function update(dt) {
+  // --- 输入处理 ---
+  player.vx = 0;
+  if (keys['ArrowLeft'] || keys['a'] || keys['A']) player.vx = -player.speed;
+  if (keys['ArrowRight'] || keys['d'] || keys['D']) player.vx = player.speed;
+
+  // --- 跳跃 ---
+  if ((keys[' '] || keys['w'] || keys['W'] || keys['ArrowUp']) && player.grounded) {
+    player.vy = player.jumpPower;
+    player.grounded = false;
+  }
+
+  // --- 物理 ---
+  player.vy += GRAVITY * dt;
+  player.x += player.vx * dt;
+  player.y += player.vy * dt;
+
+  // --- 碰撞检测: 平台 + 地面 ---
+  player.grounded = false;
+  for (const plat of platforms) {
+    // 平台碰撞 (只从上面落下)
+    if (player.vy >= 0 &&
+        player.x + player.width > plat.x &&
+        player.x < plat.x + plat.w &&
+        player.y + player.height > plat.y &&
+        player.y + player.height < plat.y + plat.h + 10) {
+      player.y = plat.y - player.height;
+      player.vy = 0;
+      player.grounded = true;
+    }
+  }
+
+  // --- 边界限制 ---
+  if (player.x < 0) player.x = 0;
+  if (player.x + player.width > CANVAS_W) player.x = CANVAS_W - player.width;
+
+  // --- 检查掉落 (失败条件) ---
+  if (player.y > CANVAS_H + 50) {
+    gameState = STATE.GAME_OVER;
+  }
+
+  // --- 检查到达终点 (胜利条件) ---
+  if (player.x + player.width > goal.x &&
+      player.x < goal.x + goal.w &&
+      player.y + player.height > goal.y &&
+      player.y < goal.y + goal.h) {
+    gameState = STATE.WIN;
+  }
+
+  // --- 更新分数 (每帧+1, 存活就有分) ---
+  score++;
+  scoreEl.textContent = `Score: ${Math.floor(score / 60)}`; // 每秒≈60帧
+}
+
+// ========== RENDER: 绘制画面 ==========
+function render() {
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // --- 背景 ---
+  const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+  gradient.addColorStop(0, '#0f3460');
+  gradient.addColorStop(1, '#16213e');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // --- 平台 ---
+  for (const plat of platforms) {
+    ctx.fillStyle = '#533483';
+    ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+    // 平台高光
+    ctx.fillStyle = '#7b2d8e';
+    ctx.fillRect(plat.x, plat.y, plat.w, 3);
+  }
+
+  // --- 终点旗 ---
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(goal.x, goal.y, goal.w, goal.h);
+  ctx.fillStyle = '#ffaa00';
+  ctx.fillRect(goal.x + 5, goal.y + 5, 5, goal.h - 10);
+  // 旗帜三角
+  ctx.beginPath();
+  ctx.moveTo(goal.x + 10, goal.y + 5);
+  ctx.lineTo(goal.x + 35, goal.y + 20);
+  ctx.lineTo(goal.x + 10, goal.y + 35);
+  ctx.fillStyle = '#ffd700';
+  ctx.fill();
+
+  // --- 玩家 ---
+  ctx.fillStyle = player.color;
+  ctx.shadowColor = '#e94560';
+  ctx.shadowBlur = 15;
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+  ctx.shadowBlur = 0;
+  // 玩家眼睛
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(player.x + 8, player.y + 8, 6, 6);
+  ctx.fillRect(player.x + 18, player.y + 8, 6, 6);
+
+  // --- 游戏状态覆盖层 ---
+  if (gameState === STATE.GAME_OVER) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.fillStyle = '#e94560';
+    ctx.font = '48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER', CANVAS_W / 2, CANVAS_H / 2 - 20);
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Arial';
+    ctx.fillText('按 R 重新开始', CANVAS_W / 2, CANVAS_H / 2 + 40);
+    ctx.fillText(`得分: ${Math.floor(score / 60)}`, CANVAS_W / 2, CANVAS_H / 2 + 80);
+  }
+
+  if (gameState === STATE.WIN) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = '48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('🎉 YOU WIN!', CANVAS_W / 2, CANVAS_H / 2 - 20);
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Arial';
+    ctx.fillText('按 R 重新开始', CANVAS_W / 2, CANVAS_H / 2 + 40);
+  }
+}
+
+// ========== RESET ==========
+function resetGame() {
+  player.x = 100;
+  player.y = 500;
+  player.vx = 0;
+  player.vy = 0;
+  player.grounded = false;
+  score = 0;
+  scoreEl.textContent = 'Score: 0';
+  gameState = STATE.PLAYING;
+}
+
+// ========== START ==========
+requestAnimationFrame(gameLoop);
+
+// =======================================================================
+// 🎯 下一步要做什么？
+// =======================================================================
+// 1. 添加敌人: 在 update() 里碰撞检测
+// 2. 加音效: new Audio('jump.wav').play()
+// 3. 换皮肤: 把 fillRect 换成 drawImage
+// 4. 做更多关卡: 按 F12 打开控制台改 platforms 数组
+// =======================================================================
+</script>
+</body>
+</html>
